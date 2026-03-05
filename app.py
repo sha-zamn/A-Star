@@ -1,6 +1,6 @@
 # --- IMPORTS ---
 import gradio as gr          # Library for creating the web interface (UI)
-import heapq                 # Library for Priority Queue (essential for Best-First Search)
+import heapq                 # Library for Priority Queue (ESSENTIAL for Best-First Search)
 import matplotlib            # Library for plotting/graphing
 matplotlib.use('Agg')        # CRITICAL: Tells matplotlib to run in 'server mode' (no display screen needed)
 import matplotlib.pyplot as plt # Specific plotting tools
@@ -14,24 +14,29 @@ def a_star_search(grid, start, goal, heuristic_type):
     # OPEN LIST: Priority Queue to store nodes to be explored
     # Format: (priority_value, current_cost, current_position)
     # heapq ensures the node with the LOWEST priority_value is popped first (Best-First)
+    # Initial value: f=0, g=0, position=start
     open_list = []
-    heapq.heappush(open_list, (0, 0, start))
+    heapq.heappush(open_list, (0 + heuristic(start, goal, heuristic_type), 0, start))
     
     # Dictionary to track where we came from (for rebuilding the path later)
     came_from = {}
     
     # Dictionary to track the cost to reach each node (g-score)
+    # g_score[start] = 0 because cost to reach start is zero
     g_score = {start: 0}
     
     # CLOSED SET: Tracks nodes we have already fully explored
+    # Prevents the algorithm from going in circles or re-processing nodes
     closed_set = set()
     
     # Counter to measure computational effort (nodes expanded)
+    # This is key for demonstrating efficiency in your presentation
     nodes_expanded = 0
 
     # MAIN SEARCH LOOP: Runs until there are no more nodes to explore
     while open_list:
         # Get the node with the lowest f-score (g + h) from the priority queue
+        # This is the "Best-First" decision: picking the most promising node
         current_f, current_g, current = heapq.heappop(open_list)
         
         # Increment counter (used to demonstrate efficiency in your presentation)
@@ -49,27 +54,31 @@ def a_star_search(grid, start, goal, heuristic_type):
         closed_set.add(current)
         
         # NEIGHBOR EXPANSION: Check Up, Down, Left, Right (4-directional movement)
+        # This matches the Manhattan distance logic
         for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
             # Calculate neighbor coordinates
             neighbor = (current[0] + dx, current[1] + dy)
             
             # BOUNDARY & OBSTACLE CHECK: 
-            # 1. Is neighbor inside the map?
-            # 2. Is neighbor NOT an obstacle (0 = free, 1 = wall)?
+            # 1. Is neighbor inside the map? (0 <= neighbor < rows/cols)
+            # 2. Is neighbor NOT an obstacle? (grid value == 0)
             if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor[0]][neighbor[1]] == 0:
                 
                 # Calculate tentative cost to reach this neighbor (current cost + 1 step)
+                # In grid search, each step usually costs 1
                 tentative_g = current_g + 1
                 
                 # If this path to neighbor is better than any previous path found...
+                # (Either we haven't seen it, or we found a cheaper way to get there)
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     # Record this new best path
                     g_score[neighbor] = tentative_g
                     
-                    # Calculate Heuristic (h-score) based on user selection
+                    # Calculate Heuristic (h-score) based on user selection (Manhattan vs. Euclidean)
                     h = heuristic(neighbor, goal, heuristic_type)
                     
-                    # Calculate Total Estimated Cost (f = g + h)
+                    # STANDARD A* EQUATION: f = g + h
+                    # This determines the priority in the Best-First Queue
                     f_score = tentative_g + h
                     
                     # Add neighbor to Priority Queue to be explored later
@@ -85,10 +94,12 @@ def a_star_search(grid, start, goal, heuristic_type):
 def heuristic(a, b, type):
     # Manhattan Distance: Best for grid movement (only Up/Down/Left/Right)
     # Formula: |x1 - x2| + |y1 - y2|
+    # Admissible for 4-directional grids (never overestimates)
     if type == "Manhattan": 
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
     # Euclidean Distance: Straight-line distance (as the crow flies)
     # Formula: sqrt((x1 - x2)^2 + (y1 - y2)^2)
+    # Also admissible for 4-directional, but underestimates MORE than Manhattan
     else: 
         return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
 
@@ -171,8 +182,8 @@ def run_astar(heuristic_type, obstacle_density):
 # --- GRADIO USER INTERFACE ---
 # Creates a custom layout block
 with gr.Blocks(title="A* Path Planning", css=".gradio-container {max-width: 600px !important;}") as demo:
-    gr.Markdown("# 🤖 A* Search Algorithm Demo")
-    gr.Markdown("Interactive path planning visualization")
+    gr.Markdown("# 🧠 A* Heuristic Lab")
+    gr.Markdown("Compare Manhattan vs. Euclidean Heuristics")
     
     with gr.Row():
         with gr.Column():
@@ -180,7 +191,7 @@ with gr.Blocks(title="A* Path Planning", css=".gradio-container {max-width: 600p
             heuristic_dropdown = gr.Dropdown(
                 choices=["Manhattan", "Euclidean"],
                 value="Manhattan",
-                label="Heuristic Function"
+                label="Heuristic Function (h(n))"
             )
             # Input 2: Slider to choose Obstacle Density
             density_slider = gr.Slider(
